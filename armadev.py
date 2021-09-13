@@ -10,16 +10,23 @@ import winreg
 import glob
 import multiprocessing
 import time
-import keyboard
 import shutil
-
-__version__ = 2.0
+__version__ = 2.1
 
 configPath = os.path.join(str(Path.home()), '.config','armadev')
 configFilePath = os.path.join(configPath, 'config')
 
 # default values
 defaultArmaPProjectPath = os.path.join(str(Path.home()), 'Documents', 'Arma 3 Projects')
+
+def process_exists(process_name):
+    call = 'TASKLIST', '/FI', 'imagename eq %s' % process_name
+    # use buildin check_output right away
+    output = subprocess.check_output(call).decode()
+    # check in last line for process name
+    last_line = output.strip().split('\r\n')[-1]
+    # because Fail message could be translated
+    return last_line.lower().startswith(process_name.lower())
 
 # Helper functions
 def mount_status():
@@ -99,10 +106,17 @@ def prog_rpt (args, parser):
         except ValueError:
             print("No logs avalible.")
             sys.exit(1)
-        os.system("title armadev rpt logging")
-        print('Starting monitoring of latest RPT log file', os.path.basename(latestLogfine))
+
+        os.system("title armadev rpt")
+
+        armaRunning = process_exists("arma3_x64.exe") or process_exists("arma3.exe")
+        if armaRunning:
+            print('Starting monitoring of latest RPT log file', os.path.basename(latestLogfine))
+        else:
+            print('Showing latest RPT log file', os.path.basename(latestLogfine))
+
         if arg:
-            os.system("title armadev rpt logging \"{}\"".format(arg))
+            os.system("title armadev rpt \"{}\"".format(arg))
             print('Filter: {}'.format(arg)) 
         try:
             while True:
@@ -111,6 +125,8 @@ def prog_rpt (args, parser):
                 if not line:
                     time.sleep(0.25)
                     logFile.seek(where)
+                    if not armaRunning:
+                        sys.exit(0)
                 else:
                     if arg:
                         if arg in line:
@@ -297,23 +313,43 @@ def prog_addon (args, parser):
     sys.exit(1)
 
 # Tools Program
-def prog_tools ():
+def prog_tools (args, parser):
     Arma3ToolsVer = get_key_HKCU(os.path.join('Software','Bohemia Interactive','Arma 3 Tools'), 'version')
 
     def getMikeroToolAndVer(tool):
         return [tool, get_key_HKCU(os.path.join('Software', 'Mikero', tool), 'version')]
-    
+
+    def armakeGetVer(tool):
+        version = ""
+        version = subprocess.check_output([tool, '--version'])
+        version = version.split(b'\r')[0].decode('utf-8')
+        return version
+
+    def hemttGetVer(tool):
+        version = ""
+        version = subprocess.check_output([tool, '--version'])
+        version = version.split(b'\n')[0].decode('utf-8')
+        version = version.split(' ')[1]
+        return version
+
     print('Following tools have been discoverd')
     if Arma3ToolsFolder:
-        print('  [BIS]          Arma 3 Tools', '(v{})'.format(Arma3ToolsVer))
+        print('  [BIS]             Arma 3 Tools', '({})'.format(Arma3ToolsVer))
     if Arma3ToolsFolder:
-        print('  [BIS]          Arma 3 Samples')
+        print('  [BIS]             Arma 3 Samples')
+    if shutil.which("armake"):
+        print('  [KoffeinFlummi]   armake ({})'.format(armakeGetVer("armake")))
+    if shutil.which("armake2"):
+        print('  [KoffeinFlummi]   armake2 ({})'.format(armakeGetVer("armake2")))
+    if shutil.which("hemtt"):
+        print('  [BrettMayson]     hemtt ({})'.format(hemttGetVer("hemtt")))
     for tool in ['ArmA3p', 'cupCore2p', 'dayz2p', 'DeOgg', 'DePbo', 'DeRap', 'DeTex', 'Eliteness', 'ExtractPbo', 'MakePbo', 'pboProject', 'Rapify']:
         tool = getMikeroToolAndVer(tool)
-        ver = '(v{})'.format(tool[1]) if tool[1] else ''
-        print('  [MikeroTool]   {}'.format(tool[0]), ver)
-    sys.exit(0)
+        ver = '({})'.format(tool[1]) if tool[1] else ''
+        print('  [MikeroTool]      {}'.format(tool[0]), ver)
+    sys.exit(1)
 
+# Project Program
 def prog_proj (args, parser):
     toolsFolder = ['tools', 'tool', 'scripts', 'script']
     repo_dir = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'], stdout=subprocess.PIPE).communicate()[0].rstrip().decode('utf-8')
@@ -364,7 +400,7 @@ def prog_proj (args, parser):
                 sys.exit(0)
         printExit('No build.py script seams to exist... Do you have a "scripts" or "tools" folder?', 1)
 
-    if args.check:
+    if args.type:
         prog_proj_check()
 
     if args.make or args.make == None:
@@ -380,7 +416,7 @@ def prog_proj (args, parser):
 
 def main():
     os.system("title armadev")
-    
+
     parser = argparse.ArgumentParser(
         prog='armadev',
         description='armadev a developer, scripting and modding helper tool for ARMA 3.',
@@ -402,7 +438,7 @@ def main():
     prog_parser_proj = subparsers.add_parser('proj',
         help='Arma 3 project handler (This script require a git project intorder to function propperly)',
         description='Arma 3 project handler')
-    prog_parser_proj.add_argument('--check', '-c', action='store_true',
+    prog_parser_proj.add_argument('--type', '-t', action='store_true',
         help='check what type of project')
     prog_parser_proj.add_argument('--make', '-m', nargs='?', metavar='<nothing>|arguments', default=False,
         help='run make script')
