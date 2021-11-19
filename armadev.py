@@ -78,6 +78,8 @@ def get_key_HKLM(regKey='', key='main'):
 def handle_config():
     config = configparser.ConfigParser()
     if not os.path.exists(configFilePath):
+        if not os.path.exists(configPath):
+            os.makedirs(configPath)    
         config['Paths'] = {'pdrive': defaultArmaPProjectPath}
         with open(configFilePath, 'w') as configfile:
             config.write(configfile)
@@ -170,12 +172,11 @@ def prog_rpt (args, parser):
 
 # P Program
 def prog_p (args, parser):
-    mountTool = os.path.join(Arma3ToolsFolder, 'WorkDrive', 'WorkDrive.exe')
-
-    def checkTool(mountTool):
-        if not os.path.isfile(mountTool):
-            print('ERROR: Not possible to find WorkDrive.exe in "{}"...'.format(os.path.join(Arma3ToolsFolder, 'bin')))
-            return sys.exit(1)
+    try:
+        mountTool = os.path.join(Arma3ToolsFolder, 'WorkDrive', 'WorkDrive.exe')
+    except:
+        print('ERROR: Not possible to find WorkDrive.exe. Is ARMA 3 Tools installed and have you preformed first time setup?')
+        return sys.exit(1)
 
     def prog_p_set(arg):
         if not os.path.exists(arg):
@@ -191,6 +192,7 @@ def prog_p (args, parser):
                 config.write(configfile)
         else: 
             sys.exit(1)
+        sys.exit(0)
 
     def prog_p_mount():
         if not os.path.exists('P:'):
@@ -210,11 +212,9 @@ def prog_p (args, parser):
 
 
     if args.mount:
-        checkTool(mountTool)
         prog_p_mount()
 
     if args.umount:
-        checkTool(mountTool)
         prog_p_umount()
 
     if args.set:
@@ -241,6 +241,7 @@ def prog_addon (args, parser):
         if not os.path.isfile(extractPboDos):
             print('ERROR: Not possible to find ExtractPboDos.exe in "{}"...'.format(os.path.join(MikeroToolFolder, 'bin')))
             sys.exit(1)
+
 
         modAddonFolder = os.path.join(workshopModPath, 'addons')
         os.chdir(modAddonFolder)
