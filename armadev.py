@@ -11,7 +11,7 @@ import glob
 import multiprocessing
 import time
 import shutil
-__version__ = 2.1
+__version__ = 2.5
 
 configPath = os.path.join(str(Path.home()), '.config','armadev')
 configFilePath = os.path.join(configPath, 'config')
@@ -100,6 +100,23 @@ Arma3SampleFolder   = get_key_HKCU(os.path.join('Software','Bohemia Interactive'
 def prog_rpt (args, parser):
     rptlogfiles = glob.glob(os.path.join(Arma3AppdataFolder, '*.rpt'))
 
+    def printLogHighlight(text):
+        if args.highlight:
+            if 'error' in text.lower():
+                return print('{}{}{}'.format('\033[91m', text, '\033[0m'), end='')
+            if 'not found' in text.lower():
+                return print('{}{}{}'.format('\033[31m', text, '\033[0m'), end='')
+            elif 'warning' in text.lower():
+                return print('{}{}{}'.format('\033[93m', text, '\033[0m'), end='')
+            elif 'info' in text.lower():
+                return print('{}{}{}'.format('\033[94m', text, '\033[0m'), end='')
+            elif 'debug' in text.lower():
+                return print('{}{}{}'.format('\033[37m', text, '\033[0m'), end='')
+            else:
+                return print('{}{}{}'.format('\033[90m', text, '\033[0m'), end='')
+        else:
+            return print(text, end='')
+
     def prog_rpt_watch(arg):
         arg = '' if arg == None else arg
         try:
@@ -111,11 +128,16 @@ def prog_rpt (args, parser):
 
         os.system("title armadev rpt")
 
-        armaRunning = process_exists("arma3_x64.exe") or process_exists("arma3.exe")
-        if armaRunning:
+        try:
+            armaRunning = process_exists("arma3_x64.exe") or process_exists("arma3.exe")
+            if armaRunning:
+                print('Starting monitoring of latest RPT log file', os.path.basename(latestLogfine))
+            else:
+                print('Showing latest RPT log file', os.path.basename(latestLogfine))
+        except:
+            armaRunning = True
+            print('WARN: Not possible to determin if Arma 3 is running...')
             print('Starting monitoring of latest RPT log file', os.path.basename(latestLogfine))
-        else:
-            print('Showing latest RPT log file', os.path.basename(latestLogfine))
 
         if arg:
             os.system("title armadev rpt \"{}\"".format(arg))
@@ -132,9 +154,9 @@ def prog_rpt (args, parser):
                 else:
                     if arg:
                         if arg in line:
-                            print(line, end='')
+                            printLogHighlight(line)
                     else:
-                        print(line, end='')
+                            printLogHighlight(line)
         except KeyboardInterrupt:
             sys.exit(0)
 
@@ -430,6 +452,8 @@ def main():
         description='armadev a developer, scripting and modding helper tool for ARMA 3.')
     prog_parser_rpt.add_argument('--watch', '-w', nargs='?', metavar='<nothing>|filter', default=False,
         help='watch the latest rpt file (Optional parameter for filter)')
+    prog_parser_rpt.add_argument('--highlight', '-i', action='store_true',
+        help='highlight errors, warning, info and debug messages')
     prog_parser_rpt.add_argument('--list', '-l', action='store_true',
         help='list all avalible rpt logs')
     prog_parser_rpt.add_argument('--clear', '-D', action='store_true',
