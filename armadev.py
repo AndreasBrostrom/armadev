@@ -298,10 +298,10 @@ def prog_addon (args, parser):
 
         processes = []
         for i, pbo in enumerate(modAddonPbos):
-            p = subprocess.Popen('"{}" -P -D -N "{}" "{}"'.format(extractPboDos, pbo, ppath), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            p = subprocess.Popen([extractPboDos, '-P', '-N', pbo, ppath], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             processes.append((p, pbo))
 
-        for p, pbo in processes:            
+        for p, pbo in processes:          
             print('Unpacking {} ({} bytes)...'.format(pbo, os.path.getsize(pbo)))
             p.wait()
             print('Done unpacking {}.'.format(pbo))
