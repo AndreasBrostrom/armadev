@@ -144,19 +144,23 @@ def prog_rpt (args, parser):
             print('Filter: {}'.format(arg)) 
         try:
             while True:
-                where = logFile.tell()
-                line = logFile.readline()
-                if not line:
-                    time.sleep(0.25)
-                    logFile.seek(where)
-                    if not armaRunning:
-                        sys.exit(0)
-                else:
-                    if arg:
-                        if arg in line:
-                            printLogHighlight(line)
+                try: 
+                    where = logFile.tell()
+                    line = logFile.readline()
+                    if not line:
+                        time.sleep(0.25)
+                        logFile.seek(where)
+                        if not armaRunning:
+                            sys.exit(0)
                     else:
-                            printLogHighlight(line)
+                        if arg:
+                            if arg in line:
+                                printLogHighlight(line)
+                        else:
+                                printLogHighlight(line)
+                except UnicodeDecodeError:
+                    pass
+                    print(" INTERNAL ERROR: Unknown 'UnicodeDecodeError' used in rpt")
         except KeyboardInterrupt:
             sys.exit(0)
 
