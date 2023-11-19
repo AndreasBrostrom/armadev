@@ -262,10 +262,10 @@ def prog_addon (args, parser):
     def prog_addon_unpack(modName, workshopModPath):
         print('Unpacking {} mod...'.format(modName))
 
-        extractPboDos = os.path.join(MikeroToolFolder, 'bin', 'ExtractPboDos.exe')
+        extractPboDos = os.path.join(MikeroToolFolder, 'bin', 'ExtractPbo.exe')
         
         if not os.path.isfile(extractPboDos):
-            print('ERROR: Not possible to find ExtractPboDos.exe in "{}"...'.format(os.path.join(MikeroToolFolder, 'bin')))
+            print('ERROR: Not possible to find ExtractPbo.exe in "{}"...'.format(os.path.join(MikeroToolFolder, 'bin')))
             sys.exit(1)
 
 
@@ -302,6 +302,7 @@ def prog_addon (args, parser):
 
         processes = []
         for i, pbo in enumerate(modAddonPbos):
+            print('Fetching {} ({} bytes)...'.format(pbo, os.path.getsize(pbo)))
             p = subprocess.Popen([extractPboDos, '-P', '-N', pbo, ppath], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             processes.append((p, pbo))
 
